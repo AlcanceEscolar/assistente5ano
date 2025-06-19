@@ -1,0 +1,10 @@
+{
+  "name": "assistente-educacional-5ano-backend",
+  "version": "1.0.0",
+  "description": "Servidor para o assistente educacional do 5º ano",
+  "main": "api/chat.js",
+  "private": true,
+  "dependencies": {
+    "@google/generative-ai": "^0.11.1"
+  }
+}

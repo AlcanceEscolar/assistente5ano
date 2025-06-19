@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente do 5º Ano do Ensino Fundamental</title>
+    
+    <!-- Tailwind CSS para estilização rápida e moderna -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Biblioteca para converter Markdown em HTML (para formatar respostas) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #chat-log::-webkit-scrollbar { width: 6px; }
+        #chat-log::-webkit-scrollbar-track { background: #f1f5f9; }
+        #chat-log::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        #chat-log::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dot-flashing { position: relative; width: 10px; height: 10px; border-radius: 5px; background-color: #64748b; color: #64748b; animation: dotFlashing 1s infinite linear alternate; animation-delay: .5s; }
+        .dot-flashing::before, .dot-flashing::after { content: ''; display: inline-block; position: absolute; top: 0; }
+        .dot-flashing::before { left: -15px; width: 10px; height: 10px; border-radius: 5px; background-color: #64748b; color: #64748b; animation: dotFlashing 1s infinite alternate; animation-delay: 0s; }
+        .dot-flashing::after { left: 15px; width: 10px; height: 10px; border-radius: 5px; background-color: #64748b; color: #64748b; animation: dotFlashing 1s infinite alternate; animation-delay: 1s; }
+        @keyframes dotFlashing { 0% { background-color: #64748b; } 50%, 100% { background-color: #d1d5db; } }
+        .model-response-bubble { color: #0f172a; } .dark .model-response-bubble { color: #e2e8f0; } .model-response-bubble h1, .model-response-bubble h2, .model-response-bubble h3 { color: #1e293b; margin-bottom: 0.5rem; margin-top: 1rem; } .dark .model-response-bubble h1, .dark .model-response-bubble h2, .dark .model-response-bubble h3 { color: #f1f5f9; } .model-response-bubble a { color: #2563eb; text-decoration: underline; } .dark .model-response-bubble a { color: #60a5fa; } .model-response-bubble ul, .model-response-bubble ol { padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; list-style-position: outside; } .model-response-bubble ul { list-style-type: disc; } .model-response-bubble ol { list-style-type: decimal; } .model-response-bubble li { margin-bottom: 0.25rem; } .model-response-bubble blockquote { border-left: 4px solid #cbd5e1; padding-left: 1rem; margin: 0.5rem 0; color: #475569; } .dark .model-response-bubble blockquote { border-left-color: #475569; color: #94a3b8; } .model-response-bubble code { background-color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 6px; font-family: monospace; } .dark .model-response-bubble code { background-color: #334155; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-slate-900 text-gray-800 dark:text-white flex items-center justify-center min-h-screen p-4">
+    <div class="flex flex-col w-full max-w-2xl h-[90vh] bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700">
+        <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center space-x-3">
+            <div class="relative flex items-center justify-center h-10 w-10 bg-teal-600 text-white rounded-full font-bold text-lg">5º</div>
+            <div>
+                <h1 class="text-lg font-semibold text-gray-900 dark:text-white">Assistente do 5º Ano</h1>
+                <p class="text-xs text-gray-500 dark:text-slate-400">Especialista no Ensino Fundamental</p>
+            </div>
+        </div>
+        <div id="chat-log" class="flex-grow p-6 space-y-6 overflow-y-auto"></div>
+        <div class="p-4 border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-b-lg">
+            <form id="chat-form" class="flex items-center space-x-3">
+                <input type="text" id="user-input" placeholder="Pergunte sobre o 5º ano do fundamental..." autocomplete="off" class="flex-grow bg-gray-100 dark:bg-slate-700 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow duration-200 text-gray-800 dark:text-white">
+                <button type="submit" id="send-button" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold p-2 rounded-md transition-colors duration-200 disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center h-10 w-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-horizontal"><path d="m3 3 3 9-3 9 19-9Z"/><path d="M6 12h16"/></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+    <script>
+        const chatLog = document.getElementById('chat-log');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const SYSTEM_PROMPT = `Você é um(a) professor(a) e consultor(a) pedagógico(a) altamente especializado(a) no 5º ano do Ensino Fundamental, com conhecimento aprofundado da BNCC e experiência no trabalho com alunos de aproximadamente 10 anos de idade. Sua atuação deve ser exclusivamente voltada ao 5º ano, com foco no desenvolvimento das competências cognitivas, socioemocionais e comunicativas dessa fase de transição entre os anos iniciais e finais do Ensino Fundamental. Temas centrais: Leitura crítica e interpretação avançada de textos diversos (fábulas, notícias, artigos, quadrinhos); Produção textual estruturada com argumentação básica e revisão textual; Resolução de problemas matemáticos mais complexos, múltiplos significados das operações, frações e unidades de medida; Geografia e História com foco em sociedade, cultura, direitos e deveres; Ciências naturais com ênfase na observação, pesquisa e cuidado com o meio ambiente; Integração de tecnologias digitais, cidadania e pesquisa escolar orientada. Em suas respostas: Use uma linguagem objetiva, motivadora e compatível com o perfil do(a) educador(a) do 5º ano; Traga sugestões de projetos interdisciplinares, atividades desafiadoras, vídeos, recursos online e avaliações diagnósticas; Fundamente sempre com as habilidades da BNCC do 5º ano; Ofereça, quando pedido, materiais complementares, links confiáveis e bibliografia atualizada. ⚠️ Importante: Se o tema abordado estiver fora do 5º ano, diga gentilmente: “Esse conteúdo não faz parte do escopo do 5º ano do Ensino Fundamental. Estou aqui exclusivamente para tratar dos assuntos relacionados a essa etapa, conforme as diretrizes da BNCC.”`;
+        let chatHistory = [];
+
+        function addMessageToLog(sender, message) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex items-start gap-3 ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-md lg:max-w-xl rounded-lg px-4 py-3 ${sender === 'user' ? 'bg-teal-600 text-white' : 'bg-gray-200 dark:bg-slate-700 model-response-bubble'}`;
+            bubble.innerHTML = message;
+            wrapper.appendChild(bubble);
+            chatLog.appendChild(wrapper);
+            chatLog.scrollTop = chatLog.scrollHeight;
+            return wrapper;
+        }
+
+        function updateMessage(element, markdown) {
+            const bubble = element.querySelector('div');
+            if (bubble) bubble.innerHTML = marked.parse(markdown, { gfm: true, breaks: true });
+        }
+
+        async function getGeminiResponse() {
+            const apiUrl = '/api/chat'; 
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ history: chatHistory })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || "Erro desconhecido no servidor.");
+            }
+            return await response.json();
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+
+            userInput.value = '';
+            userInput.disabled = true;
+            
+            addMessageToLog('user', userMessage);
+            chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+
+            const loadingIndicator = addMessageToLog('model', '<div class="dot-flashing"></div>');
+
+            try {
+                const { text } = await getGeminiResponse();
+                updateMessage(loadingIndicator, text);
+                chatHistory.push({ role: "model", parts: [{ text: text }] });
+            } catch (error) {
+                const errorMessage = `Desculpe, ocorreu um erro. Verifique se o servidor está a funcionar corretamente. <br><i>Erro: ${error.message}</i>`;
+                updateMessage(loadingIndicator, errorMessage);
+            } finally {
+                userInput.disabled = false;
+                userInput.focus();
+            }
+        });
+        
+        window.onload = () => {
+             addMessageToLog('model', 'Olá! Sou seu consultor pedagógico para o 5º ano. Como posso auxiliar nos desafios desta importante etapa?');
+             userInput.focus();
+        };
+    </script>
+</body>
+</html>
